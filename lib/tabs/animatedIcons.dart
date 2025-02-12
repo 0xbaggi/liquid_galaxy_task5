@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:rive/rive.dart';
 import 'package:liquid_galaxy_ui_components/utils/constant.dart';
 
 class AnimatedIconsPage extends StatefulWidget {
@@ -9,92 +10,124 @@ class AnimatedIconsPage extends StatefulWidget {
 }
 
 class _AnimatedIconsPageState extends State<AnimatedIconsPage> {
-  // Animated Icons documentation: https://api.flutter.dev/flutter/material/AnimatedIcons-class.html
-  final List<AnimatedIconData> icons = [
-    AnimatedIcons.play_pause,
-    AnimatedIcons.menu_close,
-    AnimatedIcons.ellipsis_search,
-    AnimatedIcons.view_list,
-    AnimatedIcons.add_event,
-  ];
-
-  final List<String> iconsName = [
-    "Play/Pause",
-    "Menu/Close",
-    "Ellipsis/Search",
-    "List/Grid",
-    "Add Event",
+  // - asset: The path to the .riv file (rive format)
+  // - animation1: The first animation state
+  // - animation2: The second animation state
+  // - title: The label for the tile
+  final List<Map<String, String>> riveAnimations = [
+    {
+      "asset": "assets/icons/speaker.riv",
+      "animation1": "idle",
+      "animation2": "active",
+      "title": "Speaker"
+    },
+    {
+      "asset": "assets/icons/update.riv",
+      "animation1": "idle",
+      "animation2": "active",
+      "title": "Update"
+    },
+    {
+      "asset": "assets/icons/settings.riv",
+      "animation1": "idle",
+      "animation2": "active",
+      "title": "Settings"
+    },
+    {
+      "asset": "assets/icons/search.riv",
+      "animation1": "idle",
+      "animation2": "active",
+      "title": "Search"
+    }
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: backgroundColor,
-      body: ListView.builder(
-        itemCount: icons.length,
-        itemBuilder: (context, index) {
-          final icon = icons[index];
-          return AnimatedIconTile(
-              animatedIcon: icon, iconName: iconsName[index]);
-        },
-      ),
-    );
+        backgroundColor: backgroundColor,
+        body: Column(
+          children: [
+            Expanded(
+                child: ListView.builder(
+              itemCount: riveAnimations.length,
+              itemBuilder: (context, index) {
+                final data = riveAnimations[index];
+                return RiveAnimatedIconTile(
+                  asset: data["asset"]!,
+                  animation1: data["animation1"]!,
+                  animation2: data["animation2"]!,
+                  iconName: data["title"]!,
+                );
+              },
+            )),
+            const Spacer(),
+            const Text(
+              "Click on the list item to start the animation",
+              style: TextStyle(color: Colors.white, fontSize: 16),
+            ),
+            const SizedBox(height: 20),
+          ],
+        ));
   }
 }
 
-class AnimatedIconTile extends StatefulWidget {
-  final AnimatedIconData animatedIcon;
+class RiveAnimatedIconTile extends StatefulWidget {
+  final String asset;
+  final String animation1;
+  final String animation2;
   final String iconName;
 
-  const AnimatedIconTile(
-      {super.key, required this.animatedIcon, required this.iconName});
+  const RiveAnimatedIconTile({
+    super.key,
+    required this.asset,
+    required this.animation1,
+    required this.animation2,
+    required this.iconName,
+  });
 
   @override
-  _AnimatedIconTileState createState() => _AnimatedIconTileState();
+  _RiveAnimatedIconTileState createState() => _RiveAnimatedIconTileState();
 }
 
-class _AnimatedIconTileState extends State<AnimatedIconTile>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _animation;
+class _RiveAnimatedIconTileState extends State<RiveAnimatedIconTile> {
+  late RiveAnimationController _controller;
+  late String currentAnimation;
   bool isForward = true;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
-    );
-    _animation = Tween<double>(begin: 0.0, end: 1.0).animate(_controller);
+    currentAnimation = widget.animation1;
+    _controller = SimpleAnimation(currentAnimation);
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
+  void _toggleAnimation() {
+    setState(() {
+      currentAnimation = isForward ? widget.animation2 : widget.animation1;
+      _controller = SimpleAnimation(currentAnimation);
+      isForward = !isForward;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: AnimatedIcon(
-        icon: widget.animatedIcon,
-        color: Colors.white,
-        progress: _animation,
-        size: 36.0,
+      horizontalTitleGap: 10.0,
+      leading: SizedBox(
+        width: 40.0,
+        height: 40.0,
+        child: RiveAnimation.asset(
+          widget.asset,
+          key: ValueKey(currentAnimation),
+          controllers: [_controller],
+          fit: BoxFit.contain,
+        ),
       ),
-      title: Text(widget.iconName, style: const TextStyle(color: Colors.white)),
-      onTap: () {
-        setState(() {
-          if (isForward) {
-            _controller.forward(from: 0.0);
-          } else {
-            _controller.reverse(from: 1.0);
-          }
-          isForward = !isForward;
-        });
-      },
+      title: Text(
+        widget.iconName,
+        style: const TextStyle(color: Colors.white),
+      ),
+      onTap: _toggleAnimation,
     );
   }
 }
